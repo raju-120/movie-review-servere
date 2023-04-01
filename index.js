@@ -1,6 +1,6 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 
 const app = express();
@@ -11,28 +11,51 @@ app.use(cors());
 app.use(express.json());
 
 
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.mgijdnm.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.e80rczo.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
 async function run() {
     try{
-        const reviewCollection =client.db('movieReview').collection('reviews') ;
 
-        app.get('/reviews', async(req, res) =>{
-            const query = {}
-            const cursor = reviewCollection.find(query);
+        const reviewCollections = client.db('movieReviews').collection('reviews');
+        const commentsCollections = client.db('movieReviews').collection('comments');
+
+        app.get('/reviewLists', async (req, res) =>{
+            const query = {};
+            const cursor = reviewCollections.find(query);
             const reviewLists = await cursor.toArray();
             res.send(reviewLists);
+        });
+
+        app.get('/reviewLists/:id', async(req, res) =>{
+            const _id = req.params.id;
+            const query = { _id: new ObjectId(_id) };
+            const reviewList =  await reviewCollections.findOne(query);
+            console.log(reviewList);
+            console.log(_id);
+            res.send(reviewList);
+        })
+
+        //Comments API
+        app.get('/comments', async(req, res) =>{
+            const query={};
+            const cursor = commentsCollections.find(query);
+            const comments = await cursor.toArray();
+            console.log(comments);
+            console.log(query);
+            res.send(comments);
+        });
+        app.post('/comments', async(req, res) =>{
+            const comments = req.body;
+            const result = await commentsCollections.insertOne(comments);
+            res.send(result);
+
         })
     }
-    finally{
-
-    }
+    finally{}
 }
 run().catch(err => console.error(err));
-
 
 
 app.get('/', (req, res) =>{
