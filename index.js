@@ -39,13 +39,18 @@ async function run() {
 
         //Comments API
         app.get('/comments', async(req, res) =>{
-            const query={};
+            
+            let query = {};
+            if(req.query.email){
+                query= {
+                    email: req.query.email
+                }
+            }
             const cursor = commentsCollections.find(query);
             const comments = await cursor.toArray();
-            console.log(comments);
-            console.log(query);
             res.send(comments);
         });
+        
         app.post('/comments', async(req, res) =>{
             const comments = req.body;
             const result = await commentsCollections.insertOne(comments);
