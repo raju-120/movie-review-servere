@@ -15,6 +15,20 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.e80rczo.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next){
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        res.status(401).send({message: 'Unauthorized access'})
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded){
+        if(err){
+            res.status(401).send({message: 'unauthorized access'});
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 
 async function run() {
     try{
@@ -25,7 +39,8 @@ async function run() {
 
         app.post('/jwt', (req, res) =>{
             const user = req.body;
-            console.log(user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,{ expiresIn: '120d'});
+            res.send({token})
         })
 
         app.get('/reviewLists', async (req, res) =>{
@@ -53,21 +68,19 @@ async function run() {
         })
 
         //Comments API
-        app.get('/comments', async(req, res) =>{
-            //let limit = req.query.limit;
+        app.get('/comments', verifyJWT, async(req, res) =>{
+            const decoded = req.decoded;
+            console.log('inside comment api',decoded);
+            if(decoded.email !== req.query.email){
+                res.status(403).send({message: 'Forbidden access'})
+            }
+            
             let query = {};
             if(req.query.email){
                 query= {
                     email: req.query.email
                 }
             }
-            /* let cursor = null;
-            if(limit){
-                cursor = commentsCollections.find(query).limit(4);
-            }
-            else{
-                cursor = commentsCollections.find(query);
-            } */
             const cursor = commentsCollections.find(query);
             const comments = await cursor.toArray();
             res.send(comments);
@@ -100,8 +113,8 @@ async function run() {
             const query = { _id :new ObjectId(id)};
             const result = await commentsCollections.deleteOne(query);
             res.send(result);
-            console.log(query);
-            console.log(result);
+            //console.log(query);
+            //console.log(result);
         })
     }
     finally{}
