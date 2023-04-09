@@ -55,6 +55,7 @@ async function run() {
             } 
             //const cursor = reviewCollections.find(query);
             const reviewLists = await cursor.toArray();
+            //const count = await reviewCollections.estimatedDocumentCount()
             res.send(reviewLists);
         });
 
@@ -70,7 +71,7 @@ async function run() {
         //Comments API
         app.get('/comments', verifyJWT, async(req, res) =>{
             const decoded = req.decoded;
-            console.log('inside comment api',decoded);
+            //console.log('inside comment api',decoded);
             if(decoded.email !== req.query.email){
                 res.status(403).send({message: 'Forbidden access'})
             }
@@ -95,16 +96,21 @@ async function run() {
 
         app.put('/comments/:id', async(req, res) =>{
             const id = req.params.id;
+            //console.log(id);
             const filter = { _id: new ObjectId(id) };
             const user = req.body;
+            //console.log(user);
             const option = {upsert: true}; 
             const update = {
                 $set: {
-                    comment: user.updatedComment,
+                    massage: user.updateComment,
                 }
             }
             const result = await commentsCollections.updateOne(filter, update,option);
             res.send(result);
+            console.log(result);
+            //console.log(filter);
+            
 
         })
 
